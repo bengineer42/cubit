@@ -84,7 +84,7 @@ fn exp2(a: Fixed) -> Fixed {
         res_u = res_u * (r1 + FixedTrait::ONE());
     }
 
-    if (a.sign == true) {
+    if (a.sign) {
         return FixedTrait::ONE() / res_u;
     } else {
         return res_u;
@@ -140,7 +140,7 @@ fn ln(a: Fixed) -> Fixed {
 // Calculates the binary logarithm of x: log2(x)
 // self must be greather than zero
 fn log2(a: Fixed) -> Fixed {
-    assert(a.sign == false, 'must be positive');
+    assert(!a.sign, 'must be positive');
 
     if (a.mag == ONE) {
         return FixedTrait::ZERO();
@@ -224,7 +224,7 @@ fn pow_int(a: Fixed, b: u64, sign: bool) -> Fixed {
     let mut x = a;
     let mut n = b;
 
-    if sign == true {
+    if sign {
         x = FixedTrait::ONE() / x;
     }
 
@@ -270,7 +270,7 @@ fn round(a: Fixed) -> Fixed {
 // Calculates the square root of a Fixed point value
 // x must be positive
 fn sqrt(a: Fixed) -> Fixed {
-    assert(a.sign == false, 'must be positive');
+    assert(!a.sign, 'must be positive');
     return FixedTrait::new((a.mag.into() * SQRT_ONE_u128).sqrt(), false);
 }
 
@@ -459,7 +459,7 @@ mod tests {
         let a = FixedTrait::new_unscaled(42, false);
         let b = FixedTrait::new_unscaled(42, false);
         let c = eq(@a, @b);
-        assert(c == true, 'invalid result');
+        assert(c, 'invalid result');
     }
 
     #[test]
@@ -467,7 +467,7 @@ mod tests {
         let a = FixedTrait::new_unscaled(42, false);
         let b = FixedTrait::new_unscaled(42, false);
         let c = ne(@a, @b);
-        assert(c == false, 'invalid result');
+        assert(!c, 'invalid result');
     }
 
     #[test]
@@ -541,12 +541,12 @@ mod tests {
         let c = FixedTrait::new_unscaled(1, true);
 
         assert(a <= a, 'a <= a');
-        assert(a <= b == false, 'a <= b');
-        assert(a <= c == false, 'a <= c');
+        assert(!(a <= b), 'a <= b');
+        assert(!(a <= c), 'a <= c');
 
         assert(b <= a, 'b <= a');
         assert(b <= b, 'b <= b');
-        assert(b <= c == false, 'b <= c');
+        assert(!(b <= c), 'b <= c');
 
         assert(c <= a, 'c <= a');
         assert(c <= b, 'c <= b');
@@ -559,17 +559,17 @@ mod tests {
         let b = FixedTrait::new_unscaled(0, false);
         let c = FixedTrait::new_unscaled(1, true);
 
-        assert(a < a == false, 'a < a');
-        assert(a < b == false, 'a < b');
-        assert(a < c == false, 'a < c');
+        assert(!(a < a), 'a < a');
+        assert(!(a < b), 'a < b');
+        assert(!(a < c), 'a < c');
 
         assert(b < a, 'b < a');
-        assert(b < b == false, 'b < b');
-        assert(b < c == false, 'b < c');
+        assert(!(b < b), 'b < b');
+        assert(!(b < c), 'b < c');
 
         assert(c < a, 'c < a');
         assert(c < b, 'c < b');
-        assert(c < c == false, 'c < c');
+        assert(!(c < c), 'c < c');
     }
 
     #[test]
@@ -582,12 +582,12 @@ mod tests {
         assert(a >= b, 'a >= b');
         assert(a >= c, 'a >= c');
 
-        assert(b >= a == false, 'b >= a');
+        assert(!(b >= a), 'b >= a');
         assert(b >= b, 'b >= b');
         assert(b >= c, 'b >= c');
 
-        assert(c >= a == false, 'c >= a');
-        assert(c >= b == false, 'c >= b');
+        assert(!(c >= a), 'c >= a');
+        assert(!(c >= b), 'c >= b');
         assert(c >= c, 'c >= c');
     }
 
@@ -597,17 +597,17 @@ mod tests {
         let b = FixedTrait::new_unscaled(0, false);
         let c = FixedTrait::new_unscaled(1, true);
 
-        assert(a > a == false, 'a > a');
+        assert(!(a > a), 'a > a');
         assert(a > b, 'a > b');
         assert(a > c, 'a > c');
 
-        assert(b > a == false, 'b > a');
-        assert(b > b == false, 'b > b');
+        assert(!(b > a), 'b > a');
+        assert(!(b > b), 'b > b');
         assert(b > c, 'b > c');
 
-        assert(c > a == false, 'c > a');
-        assert(c > b == false, 'c > b');
-        assert(c > c == false, 'c > c');
+        assert(!(c > a), 'c > a');
+        assert(!(c > b), 'c > b');
+        assert(!(c > c), 'c > c');
     }
 
     #[test]

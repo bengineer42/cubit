@@ -815,12 +815,12 @@ mod tests {
         let a = FixedTrait::from_unscaled_felt(42);
         let b = FixedTrait::from_unscaled_felt(42);
         let c = ops::eq(@a, @b);
-        assert(c == true, 'invalid result');
+        assert(c, 'invalid result');
 
         let a = FixedTrait::from_unscaled_felt(42);
         let b = FixedTrait::from_unscaled_felt(-42);
         let c = ops::eq(@a, @b);
-        assert(c == false, 'invalid result');
+        assert(!c, 'invalid result');
     }
 
     #[test]
@@ -829,12 +829,12 @@ mod tests {
         let a = FixedTrait::from_unscaled_felt(42);
         let b = FixedTrait::from_unscaled_felt(42);
         let c = ops::ne(@a, @b);
-        assert(c == false, 'invalid result');
+        assert(!c, 'invalid result');
 
         let a = FixedTrait::from_unscaled_felt(42);
         let b = FixedTrait::from_unscaled_felt(-42);
         let c = ops::ne(@a, @b);
-        assert(c == true, 'invalid result');
+        assert(c, 'invalid result');
     }
 
     #[test]
@@ -948,12 +948,12 @@ mod tests {
         let c = FixedTrait::from_unscaled_felt(-1);
 
         assert(ops::le(a, a), 'a <= a');
-        assert(ops::le(a, b) == false, 'a <= b');
-        assert(ops::le(a, c) == false, 'a <= c');
+        assert(!ops::le(a, b), 'a <= b');
+        assert(!ops::le(a, c), 'a <= c');
 
         assert(ops::le(b, a), 'b <= a');
         assert(ops::le(b, b), 'b <= b');
-        assert(ops::le(b, c) == false, 'b <= c');
+        assert(!ops::le(b, c), 'b <= c');
 
         assert(ops::le(c, a), 'c <= a');
         assert(ops::le(c, b), 'c <= b');
@@ -967,17 +967,17 @@ mod tests {
         let b = FixedTrait::from_unscaled_felt(0);
         let c = FixedTrait::from_unscaled_felt(-1);
 
-        assert(ops::lt(a, a) == false, 'a < a');
-        assert(ops::lt(a, b) == false, 'a < b');
-        assert(ops::lt(a, c) == false, 'a < c');
+        assert(!ops::lt(a, a), 'a < a');
+        assert(!ops::lt(a, b), 'a < b');
+        assert(!ops::lt(a, c), 'a < c');
 
         assert(ops::lt(b, a), 'b < a');
-        assert(ops::lt(b, b) == false, 'b < b');
-        assert(ops::lt(b, c) == false, 'b < c');
+        assert(!ops::lt(b, b), 'b < b');
+        assert(!ops::lt(b, c), 'b < c');
 
         assert(ops::lt(c, a), 'c < a');
         assert(ops::lt(c, b), 'c < b');
-        assert(ops::lt(c, c) == false, 'c < c');
+        assert(!ops::lt(c, c), 'c < c');
     }
 
     #[test]
@@ -991,12 +991,12 @@ mod tests {
         assert(ops::ge(a, b), 'a >= b');
         assert(ops::ge(a, c), 'a >= c');
 
-        assert(ops::ge(b, a) == false, 'b >= a');
+        assert(!ops::ge(b, a), 'b >= a');
         assert(ops::ge(b, b), 'b >= b');
         assert(ops::ge(b, c), 'b >= c');
 
-        assert(ops::ge(c, a) == false, 'c >= a');
-        assert(ops::ge(c, b) == false, 'c >= b');
+        assert(!ops::ge(c, a), 'c >= a');
+        assert(!ops::ge(c, b), 'c >= b');
         assert(ops::ge(c, c), 'c >= c');
     }
 
@@ -1007,17 +1007,17 @@ mod tests {
         let b = FixedTrait::from_unscaled_felt(0);
         let c = FixedTrait::from_unscaled_felt(-1);
 
-        assert(ops::gt(a, a) == false, 'a > a');
+        assert(!ops::gt(a, a), 'a > a');
         assert(ops::gt(a, b), 'a > b');
         assert(ops::gt(a, c), 'a > c');
 
-        assert(ops::gt(b, a) == false, 'b > a');
-        assert(ops::gt(b, b) == false, 'b > b');
+        assert(!ops::gt(b, a), 'b > a');
+        assert(!ops::gt(b, b), 'b > b');
         assert(ops::gt(b, c), 'b > c');
 
-        assert(ops::gt(c, a) == false, 'c > a');
-        assert(ops::gt(c, b) == false, 'c > b');
-        assert(ops::gt(c, c) == false, 'c > c');
+        assert(!ops::gt(c, a), 'c > a');
+        assert(!ops::gt(c, b), 'c > b');
+        assert(!ops::gt(c, c), 'c > c');
     }
 
     #[test]
