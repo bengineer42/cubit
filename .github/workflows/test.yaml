@@ -15,10 +15,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Setup Cairo toolchain
+      - name: Setup Cairo toolchain 2.8.4
         uses: software-mansion/setup-scarb@v1
         with:
             scarb-version: "2.8.4"
 
-      - name: Run tests
+      - name: Run tests 2.8.4
+        run: scarb test
+
+      - name: Setup Cairo toolchain 2.9.2
+        uses: software-mansion/setup-scarb@v1
+        with:
+            scarb-version: "2.9.2"
+
+      - name: Run tests 2.9.2
         run: scarb test
