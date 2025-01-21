@@ -1,10 +1,12 @@
 use core::option::OptionTrait;
 use core::result::{ResultTrait, ResultTraitImpl};
 use core::traits::{Into, TryInto};
-use core::integer::{u64_safe_divmod, u64_as_non_zero, u64_wide_mul};
+use core::num::traits::{WideMul, Sqrt};
+use core::integer::{u64_safe_divmod, u64_as_non_zero};
 
 use cubit::f64::math::lut;
 use cubit::f64::types::fixed::{HALF, ONE, Fixed, FixedIntoFelt252, FixedTrait};
+use cubit::f128::types::fixed::SQRT_ONE_u128;
 
 // PUBLIC
 
@@ -43,7 +45,7 @@ fn ceil(a: Fixed) -> Fixed {
 }
 
 fn div(a: Fixed, b: Fixed) -> Fixed {
-    let a_u128 = core::integer::u64_wide_mul(a.mag, ONE);
+    let a_u128 = a.mag.wide_mul(ONE);
     let res_u128 = a_u128 / b.mag.into();
 
     // Re-apply sign
@@ -182,7 +184,7 @@ fn lt(a: Fixed, b: Fixed) -> bool {
 }
 
 fn mul(a: Fixed, b: Fixed) -> Fixed {
-    let prod_u128 = core::integer::u64_wide_mul(a.mag, b.mag);
+    let prod_u128 = a.mag.wide_mul(b.mag);
 
     // Re-apply sign
     return FixedTrait::new((prod_u128 / ONE.into()).try_into().unwrap(), a.sign ^ b.sign);
@@ -269,15 +271,15 @@ fn round(a: Fixed) -> Fixed {
 // x must be positive
 fn sqrt(a: Fixed) -> Fixed {
     assert(a.sign == false, 'must be positive');
-    let root = core::integer::u128_sqrt(a.mag.into() * ONE.into());
-    return FixedTrait::new(root.into(), false);
+    return FixedTrait::new((a.mag.into() * SQRT_ONE_u128).sqrt(), false);
 }
 
 fn sub(a: Fixed, b: Fixed) -> Fixed {
     return add(a, -b);
 }
 
-// Tests --------------------------------------------------------------------------------------------------------------
+// Tests
+// --------------------------------------------------------------------------------------------------------------
 
 #[cfg(test)]
 mod tests {
@@ -628,7 +630,7 @@ mod tests {
         let a = FixedTrait::new(HALF_PI / 2, false);
         assert(a.tan().mag == ONE, 'invalid quarter pi');
     }
-// #[test]
+    // #[test]
 // #[available_gas(1000000)]
 // fn test_cosh() {
 //     let a = FixedTrait::new_unscaled(2, false);
@@ -637,7 +639,7 @@ mod tests {
 //     ); // 3.762195691016423
 // }
 
-// #[test]
+    // #[test]
 // #[available_gas(1000000)]
 // fn test_sinh() {
 //     let a = FixedTrait::new_unscaled(2, false);
@@ -646,7 +648,7 @@ mod tests {
 //     ); // 3.6268604077773023
 // }
 
-// #[test]
+    // #[test]
 // #[available_gas(1000000)]
 // fn test_tanh() {
 //     let a = FixedTrait::new_unscaled(2, false);
@@ -655,21 +657,21 @@ mod tests {
 //     ); // 0.9640275800745076
 // }
 
-// #[test]
+    // #[test]
 // #[available_gas(1000000)]
 // fn test_acosh() {
 //     let a = FixedTrait::new(69400261067392811864, false); // 3.762195691016423
 //     assert_precise(a.acosh(), 2 * ONE, 'invalid two', Option::None(()));
 // }
 
-// #[test]
+    // #[test]
 // #[available_gas(1000000)]
 // fn test_asinh() {
 //     let a = FixedTrait::new(66903765733337761105, false); // 3.6268604077773023
 //     assert_precise(a.asinh(), 2 * ONE, 'invalid two', Option::None(()));
 // }
 
-// #[test]
+    // #[test]
 // #[available_gas(1000000)]
 // fn test_atanh() {
 //     let a = FixedTrait::new(16602069666338597000, false); // 0.9

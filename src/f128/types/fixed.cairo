@@ -16,6 +16,8 @@ use cubit::f64::{Fixed as Fixed64, FixedTrait as FixedTrait64, ONE as ONE_u64};
 const PRIME: felt252 = 3618502788666131213697322783095070105623107215331596699973092056135872020480;
 const ONE: felt252 = 18446744073709551616; // 2 ** 64
 const ONE_u128: u128 = 18446744073709551616_u128; // 2 ** 64
+const ONE_u256: u256 = 18446744073709551616_u256; // 2 ** 64
+const SQRT_ONE_u128: u128 = 4294967296; // 2 ** 32
 const HALF: felt252 = 9223372036854775808; // 2 ** 63
 const HALF_u128: u128 = 9223372036854775808_u128; // 2 ** 63
 const MAX_u128: u128 = 340282366920938463463374607431768211455_u128; // 2 ** 128 - 1
@@ -92,16 +94,16 @@ impl FixedImpl of FixedTrait {
     }
 
     fn new_unscaled(mag: u128, sign: bool) -> Fixed {
-        return FixedTrait::new(mag * ONE_u128, sign);
+        return Self::new(mag * ONE_u128, sign);
     }
 
     fn from_felt(val: felt252) -> Fixed {
         let mag = core::integer::u128_try_from_felt252(utils::felt_abs(val)).unwrap();
-        return FixedTrait::new(mag, utils::felt_sign(val));
+        return Self::new(mag, utils::felt_sign(val));
     }
 
     fn from_unscaled_felt(val: felt252) -> Fixed {
-        return FixedTrait::from_felt(val * ONE);
+        return Self::from_felt(val * ONE);
     }
 
     fn abs(self: Fixed) -> Fixed {
@@ -430,10 +432,10 @@ impl FixedAdd of Add<Fixed> {
     }
 }
 
-impl FixedAddEq of AddEq<Fixed> {
+impl FixedAddAssign of core::ops::AddAssign<Fixed, Fixed> {
     #[inline(always)]
-    fn add_eq(ref self: Fixed, other: Fixed) {
-        self = Add::add(self, other);
+    fn add_assign(ref self: Fixed, rhs: Fixed) {
+        self = Add::add(self, rhs);
     }
 }
 
@@ -443,10 +445,10 @@ impl FixedSub of Sub<Fixed> {
     }
 }
 
-impl FixedSubEq of SubEq<Fixed> {
+impl FixedSubAssign of core::ops::SubAssign<Fixed, Fixed> {
     #[inline(always)]
-    fn sub_eq(ref self: Fixed, other: Fixed) {
-        self = Sub::sub(self, other);
+    fn sub_assign(ref self: Fixed, rhs: Fixed) {
+        self = Sub::sub(self, rhs);
     }
 }
 
@@ -456,10 +458,10 @@ impl FixedMul of Mul<Fixed> {
     }
 }
 
-impl FixedMulEq of MulEq<Fixed> {
+impl FixedMulAssign of core::ops::MulAssign<Fixed, Fixed> {
     #[inline(always)]
-    fn mul_eq(ref self: Fixed, other: Fixed) {
-        self = Mul::mul(self, other);
+    fn mul_assign(ref self: Fixed, rhs: Fixed) {
+        self = Mul::mul(self, rhs);
     }
 }
 
@@ -469,10 +471,10 @@ impl FixedDiv of Div<Fixed> {
     }
 }
 
-impl FixedDivEq of DivEq<Fixed> {
+impl FixedDivAssign of core::ops::DivAssign<Fixed, Fixed> {
     #[inline(always)]
-    fn div_eq(ref self: Fixed, other: Fixed) {
-        self = Div::div(self, other);
+    fn div_assign(ref self: Fixed, rhs: Fixed) {
+        self = Div::div(self, rhs);
     }
 }
 
@@ -551,7 +553,7 @@ impl FixedOne of core::num::traits::One<Fixed> {
     }
     #[inline(always)]
     fn is_one(self: @Fixed) -> bool {
-        *self == FixedOne::one()
+        *self == Self::one()
     }
     #[inline(always)]
     fn is_non_one(self: @Fixed) -> bool {
@@ -560,7 +562,8 @@ impl FixedOne of core::num::traits::One<Fixed> {
 }
 
 
-// Tests --------------------------------------------------------------------------------------------------------------
+// Tests
+// --------------------------------------------------------------------------------------------------------------
 
 #[cfg(test)]
 mod tests {

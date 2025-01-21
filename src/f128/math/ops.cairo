@@ -3,12 +3,13 @@ use core::option::OptionTrait;
 use core::result::{ResultTrait, ResultTraitImpl};
 use core::traits::{Into, TryInto};
 use core::integer;
-use core::integer::{u256_safe_div_rem, u256_as_non_zero, upcast};
+use core::num::traits::{WideMul, Sqrt};
+use core::integer::{u256_safe_div_rem, u256_as_non_zero};
 
 use cubit::f128::math::lut;
 use cubit::f128::types::fixed::{
-    HALF_u128, MAX_u128, ONE_u128, Fixed, FixedInto, FixedTrait, FixedAdd, FixedDiv, FixedMul,
-    FixedNeg
+    HALF_u128, MAX_u128, ONE_u128, ONE_u256, SQRT_ONE_u128, Fixed, FixedInto, FixedTrait, FixedAdd,
+    FixedDiv, FixedMul, FixedNeg
 };
 
 // PUBLIC
@@ -48,9 +49,8 @@ fn ceil(a: Fixed) -> Fixed {
 }
 
 fn div(a: Fixed, b: Fixed) -> Fixed {
-    let (a_high, a_low) = integer::u128_wide_mul(a.mag, ONE_u128);
-    let a_u256 = u256 { low: a_low, high: a_high };
-    let b_u256 = u256 { low: b.mag, high: 0 };
+    let a_u256 = a.mag.wide_mul(ONE_u128);
+    let b_u256 = b.mag.into();
     let res_u256 = a_u256 / b_u256;
 
     assert(res_u256.high == 0, 'result overflow');
@@ -186,9 +186,7 @@ fn lt(a: Fixed, b: Fixed) -> bool {
 }
 
 fn mul(a: Fixed, b: Fixed) -> Fixed {
-    let (high, low) = integer::u128_wide_mul(a.mag, b.mag);
-    let res_u256 = u256 { low: low, high: high };
-    let ONE_u256 = u256 { low: ONE_u128, high: 0 };
+    let res_u256 = a.mag.wide_mul(b.mag);
     let (scaled_u256, _) = u256_safe_div_rem(res_u256, u256_as_non_zero(ONE_u256));
 
     assert(scaled_u256.high == 0, 'result overflow');
@@ -204,8 +202,8 @@ struct f64 {
 }
 
 fn mul_64(a: f64, b: f64) -> f64 {
-    let prod_u128 = integer::u64_wide_mul(a.mag, b.mag);
-    return f64 { mag: (prod_u128 / 4294967296).try_into().unwrap(), sign: a.sign ^ b.sign };
+    let prod_u128 = a.mag.wide_mul(b.mag);
+    return f64 { mag: (prod_u128 / SQRT_ONE_u128).try_into().unwrap(), sign: a.sign ^ b.sign };
 }
 
 fn ne(a: @Fixed, b: @Fixed) -> bool {
@@ -289,9 +287,7 @@ fn round(a: Fixed) -> Fixed {
 // x must be positive
 fn sqrt(a: Fixed) -> Fixed {
     assert(a.sign == false, 'must be positive');
-    let root = integer::u128_sqrt(a.mag);
-    let scale_root = integer::u128_sqrt(ONE_u128);
-    let res_u128 = upcast(root) * ONE_u128 / upcast(scale_root);
+    let res_u128 = a.mag.sqrt().into() * ONE_u128 / SQRT_ONE_u128;
     return FixedTrait::new(res_u128, false);
 }
 
@@ -304,19 +300,18 @@ fn _split_unsigned(a: Fixed) -> (u128, u128) {
     return integer::u128_safe_divmod(a.mag, integer::u128_as_non_zero(ONE_u128));
 }
 
-// Tests --------------------------------------------------------------------------------------------------------------
+// Tests
+// --------------------------------------------------------------------------------------------------------------
 
 #[cfg(test)]
 mod tests {
     use cubit::f128::test::helpers::assert_precise;
-    use cubit::f128::types::fixed::{
-        ONE, HALF, FixedPartialEq, FixedPartialOrd, FixedAddEq, FixedSub, FixedSubEq, FixedMulEq
-    };
+    use cubit::f128::types::fixed::{ONE, HALF};
 
     use cubit::f128::math::trig::HALF_PI_u128;
     use cubit::f128::math::trig::PI_u128;
 
-    use super::{FixedTrait, ONE_u128, lut, exp2_int, integer};
+    use super::{FixedTrait, ONE_u128, lut, exp2_int};
 
     #[test]
     fn test_into() {
