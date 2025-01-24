@@ -1,7 +1,3 @@
-use core::num::traits::{Zero, One};
-use core::num::traits::{WideMul, Sqrt};
-
-use fixed::utils::{felt_abs, felt_sign};
 use fixed::fixed::types::{Fixed, FixedSqrtTrait};
 use fixed::fixed::types::FixedMagMul;
 use fixed::fixed::consts::FixedConstsTrait;
@@ -14,295 +10,69 @@ trait LutTrait<T> {
 }
 
 
-pub trait FixedTrait<
-    Mag,
-    const EXP_MAG: Mag,
-    const EXP_2RS: [Mag; 8],
-    impl Consts: FixedConstsTrait<Mag>,
-    +LutTrait<Mag>,
-    +Mul<Fixed<Mag>>,
-    +Div<Fixed<Mag>>,
-    +FixedSqrtTrait<Mag>,
-    +Add<Fixed<Mag>>,
-    +Sub<Fixed<Mag>>,
-    +PartialEq<Mag>,
-    +PartialOrd<Mag>,
-    +Zero<Mag>,
-    +One<Mag>,
-    +TryInto<Mag, NonZero<Mag>>,
-    +Into<Mag, u256>,
-    +Into<Mag, felt252>,
-    +TryInto<u256, Mag>,
-    +TryInto<felt252, Mag>,
-    +Add<Mag>,
-    +Sub<Mag>,
-    +Mul<Mag>,
-    +Div<Mag>,
-    +DivRem<Mag>,
-    +FixedMagMul<Mag>,
-    +WideMul<Mag, Mag>,
-> {
+pub trait FixedMagOpsTrait<Mag> {
+    fn mag_exp(self: Mag) -> Mag;
+    fn mag_exp2(self: Mag) -> Mag;
+    fn mag_ln(self: Mag) -> Mag;
+    fn mag_log2(self: Mag) -> Mag;
+    fn mag_log10(self: Mag) -> Mag;
+    fn mag_pow(self: Mag, b: Mag) -> Mag;
+}
+
+pub trait FixedOpsTrait<Mag> {
+    fn exp(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn exp2(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn ln(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn log2(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn log10(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn pow(self: Fixed<Mag>, exp: Fixed<Mag>) -> Fixed<Mag>;
+}
+
+pub trait FixedTrait<Mag> {
     // Constructors
-    fn new(mag: Mag, sign: bool) -> Fixed<Mag> {
-        Fixed { mag, sign }
-    }
-    fn new_unscaled(
-        mag: Mag, sign: bool,
-    ) -> Fixed<Mag> {
-        Fixed { mag: mag * Consts::ONE_MAG, sign }
-    }
-    fn from_felt(
-        val: felt252,
-    ) -> Fixed<Mag> {
-        Self::new(felt_abs(val).try_into().unwrap(), felt_sign(val))
-    }
-    fn from_unscaled_felt(
-        val: felt252,
-    ) -> Fixed<Mag> {
-        Self::from_felt(val * Consts::ONE_MAG.into())
-    }
-    fn from_decimal(
-        val: u256, places: u8,
-    ) -> Fixed<
-        Mag,
-    > {
-        let mut pow: u8 = 1;
-        for _ in 0..places {
-            pow *= 10;
-        };
-        let mag = (val * Consts::ONE_MAG.into() / pow.into()).try_into().unwrap();
-        Fixed { mag, sign: false }
-    }
+    fn new(mag: Mag, sign: bool) -> Fixed<Mag>;
+    fn new_unscaled(mag: Mag, sign: bool) -> Fixed<Mag>;
+    fn from_felt(val: felt252) -> Fixed<Mag>;
+    fn from_unscaled_felt(val: felt252) -> Fixed<Mag>;
+    fn from_decimal(val: u256, places: u8) -> Fixed<Mag>;
 
     // Casters
-    fn to_decimal(
-        self: @Fixed<Mag>, places: u8,
-    ) -> u256 {
-        assert(!*self.sign, 'Negative value');
-        let mut value: u256 = (*self.mag).into();
-        for _ in 0..places {
-            value *= 10;
-        };
-        value / Consts::ONE_MAG.into()
-    }
-    fn split(
-        self: @Fixed<Mag>,
-    ) -> (Mag, Mag) {
-        DivRem::div_rem(*self.mag, Consts::ONE_MAG.try_into().unwrap())
-    }
+    fn to_decimal(self: Fixed<Mag>, places: u8) -> u256;
+    fn split(self: Fixed<Mag>) -> (Mag, Mag);
 
     // // Math
-    fn abs(self: @Fixed<Mag>) -> Fixed<Mag> {
-        Fixed { mag: *self.mag, sign: false }
-    }
-    fn ceil(
-        self: @Fixed<Mag>,
-    ) -> Fixed<
-        Mag,
-    > {
-        let (div, rem) = Self::split(self);
-        if rem.is_zero() {
-            *self
-        } else if *self.sign {
-            Fixed { mag: div, sign: true }
-        } else {
-            Fixed { mag: div + Consts::ONE_MAG, sign: false }
-        }
-    }
-    fn exp(
-        self: @Fixed<Mag>,
-    ) -> Fixed<
-        Mag,
-    > {
-        Self::exp2(@Fixed { mag: (*self.mag).fixed_mag_mul(EXP_MAG), sign: *self.sign })
-    }
-    fn exp2(
-        self: @Fixed<Mag>,
-    ) -> Fixed<
-        Mag,
-    > {
-        if (self.mag == 0) {
-            return Consts::ONE;
-        }
-
-        let (int_part, frac_part) = Self::split(self);
-
-        // let int_res = Fixed128::new_unscaled(lut::exp2(int_part), false);
-        let mut res_u = int_part.lut_exp2();
-
-        if frac_part != 0 {
-            let frac_fixed = Fixed128::new(frac_part, false);
-            let r8 = Fixed128::new(41691949755436, false) * frac_fixed;
-            let r7 = (r8 + Fixed128::new(231817862090993, false)) * frac_fixed;
-            let r6 = (r7 + Fixed128::new(2911875592466782, false)) * frac_fixed;
-            let r5 = (r6 + Fixed128::new(24539637786416367, false)) * frac_fixed;
-            let r4 = (r5 + Fixed128::new(177449490038807528, false)) * frac_fixed;
-            let r3 = (r4 + Fixed128::new(1023863119786103800, false)) * frac_fixed;
-            let r2 = (r3 + Fixed128::new(4431397849999009866, false)) * frac_fixed;
-            let r1 = (r2 + Fixed128::new(12786308590235521577, false)) * frac_fixed;
-            res_u = res_u * (r1 + Fixed128::ONE());
-        }
-
-        if (a.sign) {
-            return Consts::ONE_MAG.wide_mul(res_u);
-        } else {
-            return res_u;
-        }
-    }
-    fn floor(
-        self: @Fixed<Mag>,
-    ) -> Fixed<
-        Mag,
-    > {
-        let (div, rem) = Self::split(self);
-        if rem.is_zero() {
-            *self
-        } else if *self.sign {
-            Fixed { mag: div + Consts::ONE_MAG, sign: true }
-        } else {
-            Fixed { mag: div, sign: false }
-        }
-    }
-    fn ln(self: @Fixed<Mag>) -> Fixed<Mag>;
-    fn log2(self: @Fixed<Mag>) -> Fixed<Mag>;
-    fn log10(self: @Fixed<Mag>) -> Fixed<Mag>;
-    fn pow(self: @Fixed<Mag>, b: Fixed<Mag>) -> Fixed<Mag>;
-    fn round(
-        self: @Fixed<Mag>,
-    ) -> Fixed<
-        Mag,
-    > {
-        let (div, rem) = Self::split(self);
-        let mag = div + match rem >= Consts::HALF_MAG {
-            true => One::one(),
-            false => Zero::zero(),
-        };
-        Self::new_unscaled(mag, *self.sign)
-    }
+    fn abs(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn ceil(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn exp(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn exp2(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn floor(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn ln(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn log2(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn log10(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn pow(self: Fixed<Mag>, b: Fixed<Mag>) -> Fixed<Mag>;
+    fn round(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn inverse(self: Fixed<Mag>) -> Fixed<Mag>;
 
     // Trigonometry
-    fn acos(
-        self: @Fixed<Mag>,
-    ) -> Fixed<
-        Mag,
-    > {
-        let val = *self;
-        let root = Self::asin(@((Consts::ONE - val * val).fixed_sqrt()));
-        match self.sign {
-            true => Consts::PI - root,
-            false => root,
-        }
-    }
-    fn acos_fast(
-        self: @Fixed<Mag>,
-    ) -> Fixed<
-        Mag,
-    > {
-        let val = *self;
-        let root = Self::asin_fast(@((Consts::ONE - val * val).fixed_sqrt()));
-        match self.sign {
-            true => Consts::PI - root,
-            false => root,
-        }
-    }
-    fn asin(
-        self: @Fixed<Mag>,
-    ) -> Fixed<
-        Mag,
-    > {
-        let val = *self;
-        assert(val.mag <= Consts::ONE_MAG, 'asin: out of range');
-        match val.mag == Consts::ONE_MAG {
-            true => Fixed { mag: Consts::HALF_PI_MAG, sign: val.sign },
-            false => Self::atan(@((Consts::ONE - val * val).fixed_sqrt())),
-        }
-    }
-    fn asin_fast(
-        self: @Fixed<Mag>,
-    ) -> Fixed<
-        Mag,
-    > {
-        let val = *self;
-        assert(val.mag <= Consts::ONE_MAG, 'asin: out of range');
-        match val.mag == Consts::ONE_MAG {
-            true => Fixed { mag: Consts::HALF_PI_MAG, sign: val.sign },
-            false => Self::atan_fast(@((Consts::ONE - val * val).fixed_sqrt())),
-        }
-    }
-    fn atan(self: @Fixed<Mag>) -> Fixed<Mag>;
-    fn atan_fast(self: @Fixed<Mag>) -> Fixed<Mag>;
-    fn cos(self: @Fixed<Mag>) -> Fixed<Mag> {
-        Self::sin(@(Consts::HALF_PI - *self))
-    }
-    fn cos_fast(self: @Fixed<Mag>) -> Fixed<Mag> {
-        Self::sin_fast(@(Consts::HALF_PI - *self))
-    }
-    fn sin(self: @Fixed<Mag>) -> Fixed<Mag>; //
-    fn sin_fast(self: @Fixed<Mag>) -> Fixed<Mag>; //
-    fn tan(
-        self: @Fixed<Mag>,
-    ) -> Fixed<
-        Mag,
-    > {
-        let cos = Self::cos(self);
-        assert(cos.mag != Zero::zero(), 'tan undefined');
-        Self::sin(self) / cos
-    }
-    fn tan_fast(
-        self: @Fixed<Mag>,
-    ) -> Fixed<
-        Mag,
-    > {
-        let cos = Self::cos_fast(self);
-        assert(cos.mag != Zero::zero(), 'tan undefined');
-        Self::sin_fast(self) / cos
-    }
+    fn acos(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn acos_fast(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn asin(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn asin_fast(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn atan(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn atan_fast(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn cos(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn cos_fast(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn sin(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn sin_fast(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn tan(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn tan_fast(self: Fixed<Mag>) -> Fixed<Mag>;
 
     // Hyperbolic
-    fn acosh(
-        self: @Fixed<Mag>,
-    ) -> Fixed<
-        Mag,
-    > {
-        let val = *self;
-        let root = (val * val - Consts::ONE).fixed_sqrt();
-        Self::ln(@(val + root))
-    }
-    fn asinh(
-        self: @Fixed<Mag>,
-    ) -> Fixed<
-        Mag,
-    > {
-        let val = *self;
-        let root = (val * val + Consts::ONE).fixed_sqrt();
-        Self::ln(@(val + root))
-    }
-    fn atanh(
-        self: @Fixed<Mag>,
-    ) -> Fixed<
-        Mag,
-    > {
-        let val = *self;
-        let ln_val = (Consts::ONE + val) / (Consts::ONE - val);
-        Self::ln(@(ln_val)) / Consts::TWO
-    }
-    fn cosh(
-        self: @Fixed<Mag>,
-    ) -> Fixed<Mag> {
-        let ea = Self::exp(self);
-        (ea + (Consts::ONE / ea)) / Consts::TWO
-    }
-    fn sinh(
-        self: @Fixed<Mag>,
-    ) -> Fixed<Mag> {
-        let ea = Self::exp(self);
-        (ea - (Consts::ONE / ea)) / Consts::TWO
-    }
-    fn tanh(
-        self: @Fixed<Mag>,
-    ) -> Fixed<Mag> {
-        let ea = Self::exp(self);
-        let iea = Consts::ONE / ea;
-        (ea - iea) / (ea + iea)
-    }
+    fn acosh(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn asinh(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn atanh(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn cosh(self: Fixed<Mag>) -> Fixed<Mag>;
+
+    fn sinh(self: Fixed<Mag>) -> Fixed<Mag>;
+    fn tanh(self: Fixed<Mag>) -> Fixed<Mag>;
 }

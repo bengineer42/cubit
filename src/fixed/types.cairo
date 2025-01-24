@@ -136,7 +136,7 @@ impl FixedSqrt<Mag, +FixedMagSqrt<Mag>, +Drop<Mag>> of core::num::traits::Sqrt<F
     type Target = Fixed<Mag>;
 
     fn sqrt(self: Fixed<Mag>) -> Fixed<Mag> {
-        assert(!self.sign, 'must be positive');
+        self.assert_positive();
         Fixed { mag: self.mag.fixed_mag_sqrt(), sign: false }
     }
 }
@@ -155,6 +155,16 @@ pub trait FixedMagSqrt<Mag> {
 
 pub trait FixedSqrtTrait<Mag> {
     fn fixed_sqrt(self: Fixed<Mag>) -> Fixed<Mag>;
+}
+
+pub trait FixedAssertionsTrait<Mag> {
+    fn assert_positive(self: @Fixed<Mag>);
+}
+
+pub impl FixedAssertionsImpl<Mag> of FixedAssertionsTrait<Mag> {
+    fn assert_positive(self: @Fixed<Mag>) {
+        assert(!*self.sign, 'Not positive');
+    }
 }
 
 pub impl FixedSqrtImpl<Mag, +FixedMagSqrt<Mag>, +Drop<Mag>> of FixedSqrtTrait<Mag> {

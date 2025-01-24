@@ -1,7 +1,8 @@
 use core::num::traits::{WideMul, Sqrt};
 
-use fixed::fixed::types::Fixed;
-use fixed::fixed::types::{FixedMagMul, FixedMagDiv, FixedMagSqrt};
+use fixed::fixed::types::{Fixed, FixedMagMul, FixedMagDiv, FixedMagSqrt};
+
+use fixed::utils::{felt_abs, felt_sign};
 
 pub impl FixedMagDivImpl<
     Mag,
@@ -48,6 +49,7 @@ pub impl FixedMagSqrtImpl<
     }
 }
 
+
 impl FixedOne<
     Mag, const ONE_MAG: Mag, +PartialEq<@Mag>, +Drop<Mag>,
 > of core::num::traits::One<Fixed<Mag>> {
@@ -63,3 +65,4 @@ impl FixedOne<
         !Self::is_one(self)
     }
 }
+

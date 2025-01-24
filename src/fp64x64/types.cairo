@@ -26,37 +26,5 @@ pub impl PF64X64MagMul = implementations::FixedMagMulImpl<u128, FP64X64Consts::O
 pub impl PF64X64MagDiv = implementations::FixedMagDivImpl<u128, FP64X64Consts::ONE_MAG>;
 pub impl PF64X64MagSqrt = implementations::FixedMagSqrtImpl<u128, FP64X64Consts::SQRT_MAG>;
 
-
-pub impl FP64X64 of FixedTrait<u128> {
-    fn exp(self: @fp64x64) -> fp64x64 {
-        Fixed { mag: 0, sign: false }
-    }
-    fn exp2(self: @fp64x64) -> fp64x64 {
-        Fixed { mag: 0, sign: false }
-    }
-    fn ln(self: @fp64x64) -> fp64x64 {
-        Fixed { mag: 0, sign: false }
-    }
-    fn log2(self: @fp64x64) -> fp64x64 {
-        Fixed { mag: 0, sign: false }
-    }
-    fn log10(self: @fp64x64) -> fp64x64 {
-        Fixed { mag: 0, sign: false }
-    }
-    fn pow(self: @fp64x64, b: fp64x64) -> fp64x64 {
-        Fixed { mag: 0, sign: false }
-    }
-    fn atan(self: @fp64x64) -> fp64x64 {
-        Fixed { mag: 0, sign: false }
-    }
-    fn atan_fast(self: @fp64x64) -> fp64x64 {
-        Fixed { mag: 0, sign: false }
-    }
-    fn sin(self: @fp64x64) -> fp64x64 {
-        Fixed { mag: 0, sign: false }
-    }
-    fn sin_fast(self: @fp64x64) -> fp64x64 {
-        Fixed { mag: 0, sign: false }
-    }
-}
+pub impl FP64X64 = implementations::FixedImpl<u128>;
 
