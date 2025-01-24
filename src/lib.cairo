@@ -21,7 +21,6 @@ pub mod fp32x32 {
 
 pub mod vec {
     pub mod traits;
-    pub mod types;
 }
 
 pub mod vec2;
