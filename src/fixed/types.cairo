@@ -1,6 +1,6 @@
 use core::num::traits::{WideMul, Sqrt};
 use core::traits::DivRem;
-use fixed::traits::consts::FixedConstsTrait;
+use fixed::fixed::consts::FixedConstsTrait;
 
 #[derive(Copy, Drop, Serde)]
 pub struct Fixed<Mag> {
@@ -21,23 +21,6 @@ impl FixedZero<Mag, +core::num::traits::Zero<Mag>> of core::num::traits::Zero<Fi
         self.mag.is_non_zero()
     }
 }
-
-impl FixedOne<
-    Mag, const ONE_MAG: Mag, +PartialEq<@Mag>, +Drop<Mag>,
-> of core::num::traits::One<Fixed<Mag>> {
-    fn one() -> Fixed<Mag> {
-        Fixed { mag: ONE_MAG, sign: false }
-    }
-
-    fn is_one(self: @Fixed<Mag>) -> bool {
-        (self.mag == @ONE_MAG) && !*self.sign
-    }
-
-    fn is_non_one(self: @Fixed<Mag>) -> bool {
-        !Self::is_one(self)
-    }
-}
-
 
 impl FixedAdd<
     Mag,
@@ -84,6 +67,19 @@ impl FixedSub<
         }
     }
 }
+
+pub impl FixedMul<Mag, +FixedMagMul<Mag>, +Drop<Mag>> of Mul<Fixed<Mag>> {
+    fn mul(lhs: Fixed<Mag>, rhs: Fixed<Mag>) -> Fixed<Mag> {
+        Fixed { mag: FixedMagMul::fixed_mag_mul(lhs.mag, rhs.mag), sign: lhs.sign != rhs.sign }
+    }
+}
+
+pub impl FixedDiv<Mag, +FixedMagDiv<Mag>, +Drop<Mag>> of Div<Fixed<Mag>> {
+    fn div(lhs: Fixed<Mag>, rhs: Fixed<Mag>) -> Fixed<Mag> {
+        Fixed { mag: FixedMagDiv::fixed_mag_div(lhs.mag, rhs.mag), sign: lhs.sign != rhs.sign }
+    }
+}
+
 
 impl FixedPartialEq<Mag, +PartialEq<Mag>> of PartialEq<Fixed<Mag>> {
     fn eq(lhs: @Fixed<Mag>, rhs: @Fixed<Mag>) -> bool {
@@ -135,14 +131,35 @@ impl FixedDivAssign<Mag, +Div<Fixed<Mag>>> of core::ops::DivAssign<Fixed<Mag>, F
         self = self / rhs;
     }
 }
-// impl FixedSqrt<Mag, const SQRT_ONE: Mag, +core::num::traits::Sqrt<Mag>, +Drop<Mag>,
-// +Into<core::num::traits::Sqrt::<Mag>::Target, Mag>> of core::num::traits::Sqrt<Fixed<Mag>> {
-//     type Target = Fixed<Mag>;
 
-//     fn sqrt(self: Fixed<Mag>) -> Fixed<Mag> {
-//         assert(!self.sign, 'must be positive');
-//         Fixed { mag: self.mag.sqrt().into() * SQRT_ONE, sign: false }
-//     }
-// }
+impl FixedSqrt<Mag, +FixedMagSqrt<Mag>, +Drop<Mag>> of core::num::traits::Sqrt<Fixed<Mag>> {
+    type Target = Fixed<Mag>;
 
+    fn sqrt(self: Fixed<Mag>) -> Fixed<Mag> {
+        assert(!self.sign, 'must be positive');
+        Fixed { mag: self.mag.fixed_mag_sqrt(), sign: false }
+    }
+}
 
+pub trait FixedMagMul<Mag> {
+    fn fixed_mag_mul(self: Mag, rhs: Mag) -> Mag;
+}
+
+pub trait FixedMagDiv<Mag> {
+    fn fixed_mag_div(self: Mag, rhs: Mag) -> Mag;
+}
+
+pub trait FixedMagSqrt<Mag> {
+    fn fixed_mag_sqrt(self: Mag) -> Mag;
+}
+
+pub trait FixedSqrtTrait<Mag> {
+    fn fixed_sqrt(self: Fixed<Mag>) -> Fixed<Mag>;
+}
+
+pub impl FixedSqrtImpl<Mag, +FixedMagSqrt<Mag>, +Drop<Mag>> of FixedSqrtTrait<Mag> {
+    fn fixed_sqrt(self: Fixed<Mag>) -> Fixed<Mag> {
+        assert(!self.sign, 'must be positive');
+        Fixed { mag: FixedMagSqrt::fixed_mag_sqrt(self.mag), sign: false }
+    }
+}

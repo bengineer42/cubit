@@ -1,4 +1,4 @@
-use fixed::types::fixed::Fixed;
+use fixed::fixed::types::Fixed;
 
 pub trait FixedConstsTrait<Mag> {
     const ONE_MAG: Mag;

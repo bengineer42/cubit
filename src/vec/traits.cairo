@@ -1,5 +1,5 @@
 use core::num::traits::{WideMul, Sqrt};
-use fixed::types::fixed::Fixed;
+use fixed::fixed::types::Fixed;
 
 trait VecTrait<Vec> {
     type Fixed;

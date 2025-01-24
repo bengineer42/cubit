@@ -2,33 +2,45 @@ use core::num::traits::{Zero, One};
 use core::num::traits::{WideMul, Sqrt};
 
 use fixed::utils::{felt_abs, felt_sign};
-use fixed::types::fixed::Fixed;
-use fixed::traits::consts::FixedConstsTrait;
+use fixed::fixed::types::{Fixed, FixedSqrtTrait};
+use fixed::fixed::types::FixedMagMul;
+use fixed::fixed::consts::FixedConstsTrait;
+
+trait LutTrait<T> {
+    fn lut_msb(self: T) -> (T, T);
+    fn lut_exp2(self: T) -> T;
+    fn lut_sin(self: T) -> (T, T, T);
+    fn lut_atan(self: T) -> (T, T, T);
+}
+
 
 pub trait FixedTrait<
     Mag,
+    const EXP_MAG: Mag,
+    const EXP_2RS: [Mag; 8],
     impl Consts: FixedConstsTrait<Mag>,
+    +LutTrait<Mag>,
+    +Mul<Fixed<Mag>>,
+    +Div<Fixed<Mag>>,
+    +FixedSqrtTrait<Mag>,
+    +Add<Fixed<Mag>>,
+    +Sub<Fixed<Mag>>,
+    +PartialEq<Mag>,
+    +PartialOrd<Mag>,
+    +Zero<Mag>,
+    +One<Mag>,
+    +TryInto<Mag, NonZero<Mag>>,
+    +Into<Mag, u256>,
+    +Into<Mag, felt252>,
+    +TryInto<u256, Mag>,
+    +TryInto<felt252, Mag>,
     +Add<Mag>,
     +Sub<Mag>,
     +Mul<Mag>,
     +Div<Mag>,
     +DivRem<Mag>,
-    +Add<Fixed<Mag>>,
-    +Sub<Fixed<Mag>>,
-    +Mul<Fixed<Mag>>,
-    +Div<Fixed<Mag>>,
-    +PartialEq<Mag>,
-    +PartialOrd<Mag>,
-    +Zero<Mag>,
-    +One<Mag>,
-    +Sqrt<Mag>,
-    +TryInto<Mag, NonZero<Mag>>,
-    +Sqrt<Fixed<Mag>>,
-    +Into<Sqrt::<Fixed<Mag>>::Target, Fixed<Mag>>,
-    +Into<Mag, u256>,
-    +Into<Mag, felt252>,
-    +TryInto<u256, Mag>,
-    +TryInto<felt252, Mag>,
+    +FixedMagMul<Mag>,
+    +WideMul<Mag, Mag>,
 > {
     // Constructors
     fn new(mag: Mag, sign: bool) -> Fixed<Mag> {
@@ -97,8 +109,46 @@ pub trait FixedTrait<
             Fixed { mag: div + Consts::ONE_MAG, sign: false }
         }
     }
-    fn exp(self: @Fixed<Mag>) -> Fixed<Mag>;
-    fn exp2(self: @Fixed<Mag>) -> Fixed<Mag>;
+    fn exp(
+        self: @Fixed<Mag>,
+    ) -> Fixed<
+        Mag,
+    > {
+        Self::exp2(@Fixed { mag: (*self.mag).fixed_mag_mul(EXP_MAG), sign: *self.sign })
+    }
+    fn exp2(
+        self: @Fixed<Mag>,
+    ) -> Fixed<
+        Mag,
+    > {
+        if (self.mag == 0) {
+            return Consts::ONE;
+        }
+
+        let (int_part, frac_part) = Self::split(self);
+
+        // let int_res = Fixed128::new_unscaled(lut::exp2(int_part), false);
+        let mut res_u = int_part.lut_exp2();
+
+        if frac_part != 0 {
+            let frac_fixed = Fixed128::new(frac_part, false);
+            let r8 = Fixed128::new(41691949755436, false) * frac_fixed;
+            let r7 = (r8 + Fixed128::new(231817862090993, false)) * frac_fixed;
+            let r6 = (r7 + Fixed128::new(2911875592466782, false)) * frac_fixed;
+            let r5 = (r6 + Fixed128::new(24539637786416367, false)) * frac_fixed;
+            let r4 = (r5 + Fixed128::new(177449490038807528, false)) * frac_fixed;
+            let r3 = (r4 + Fixed128::new(1023863119786103800, false)) * frac_fixed;
+            let r2 = (r3 + Fixed128::new(4431397849999009866, false)) * frac_fixed;
+            let r1 = (r2 + Fixed128::new(12786308590235521577, false)) * frac_fixed;
+            res_u = res_u * (r1 + Fixed128::ONE());
+        }
+
+        if (a.sign) {
+            return Consts::ONE_MAG.wide_mul(res_u);
+        } else {
+            return res_u;
+        }
+    }
     fn floor(
         self: @Fixed<Mag>,
     ) -> Fixed<
@@ -137,7 +187,7 @@ pub trait FixedTrait<
         Mag,
     > {
         let val = *self;
-        let root = Self::asin(@((Consts::ONE - val * val).sqrt().into()));
+        let root = Self::asin(@((Consts::ONE - val * val).fixed_sqrt()));
         match self.sign {
             true => Consts::PI - root,
             false => root,
@@ -149,7 +199,7 @@ pub trait FixedTrait<
         Mag,
     > {
         let val = *self;
-        let root = Self::asin_fast(@((Consts::ONE - val * val).sqrt().into()));
+        let root = Self::asin_fast(@((Consts::ONE - val * val).fixed_sqrt()));
         match self.sign {
             true => Consts::PI - root,
             false => root,
@@ -164,7 +214,7 @@ pub trait FixedTrait<
         assert(val.mag <= Consts::ONE_MAG, 'asin: out of range');
         match val.mag == Consts::ONE_MAG {
             true => Fixed { mag: Consts::HALF_PI_MAG, sign: val.sign },
-            false => Self::atan(@((Consts::ONE - val * val).sqrt().into())),
+            false => Self::atan(@((Consts::ONE - val * val).fixed_sqrt())),
         }
     }
     fn asin_fast(
@@ -176,7 +226,7 @@ pub trait FixedTrait<
         assert(val.mag <= Consts::ONE_MAG, 'asin: out of range');
         match val.mag == Consts::ONE_MAG {
             true => Fixed { mag: Consts::HALF_PI_MAG, sign: val.sign },
-            false => Self::atan_fast(@((Consts::ONE - val * val).sqrt().into())),
+            false => Self::atan_fast(@((Consts::ONE - val * val).fixed_sqrt())),
         }
     }
     fn atan(self: @Fixed<Mag>) -> Fixed<Mag>;
@@ -215,7 +265,7 @@ pub trait FixedTrait<
         Mag,
     > {
         let val = *self;
-        let root = (val * val - Consts::ONE).sqrt().into();
+        let root = (val * val - Consts::ONE).fixed_sqrt();
         Self::ln(@(val + root))
     }
     fn asinh(
@@ -224,7 +274,7 @@ pub trait FixedTrait<
         Mag,
     > {
         let val = *self;
-        let root = (val * val + Consts::ONE).sqrt().into();
+        let root = (val * val + Consts::ONE).fixed_sqrt();
         Self::ln(@(val + root))
     }
     fn atanh(

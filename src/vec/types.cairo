@@ -1,4 +1,4 @@
-use fixed::types::fixed::{Fixed, FixedDrop};
+use fixed::fixed::types::{Fixed};
 
 #[derive(Copy, Drop)]
 struct Vec2<Mag> {
